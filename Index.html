@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mines Gambling Game</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #1e1e1e;
+            color: #ccc;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+        .auth-container {
+            width: 100%;
+            max-width: 600px;
+            background-color: #2b2b2b;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            box-sizing: border-box;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .auth-container h2 {
+            font-size: 24px;
+            color: #00bfff;
+            margin-bottom: 20px;
+        }
+        .auth-container input {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #444;
+            border-radius: 5px;
+            width: calc(100% - 22px);
+            margin-bottom: 10px;
+            box-sizing: border-box;
+            background-color: #333;
+            color: #ccc;
+        }
+        .auth-container button {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #444;
+            border-radius: 5px;
+            width: calc(100% - 22px);
+            margin-bottom: 10px;
+            box-sizing: border-box;
+            background-color: #00bfff;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+        .auth-container button:hover {
+            background-color: #0094d6;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background-color: #2b2b2b;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            box-sizing: border-box;
+            display: none;
+            text-align: center;
+            position: relative;
+            margin-bottom: 20px;
+        }
+        h1 {
+            font-size: 28px;
+            margin: 0 0 20px 0;
+            color: #00bfff;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+        input, button {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #444;
+            border-radius: 5px;
+            width: calc(100% - 22px);
+            margin-bottom: 10px;
+            box-sizing: border-box;
+            background-color: #333;
+            color: #ccc;
+        }
+        button {
+            background-color: #00bfff;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0094d6;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(5, 50px);
+            grid-gap: 10px;
+            margin: 20px auto;
+            justify-content: center; /* Center the grid horizontally */
+        }
+        .cell {
+            width: 50px;
+            height: 50px;
+            background-color: #444;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #eee;
+        }
+        .cell.clicked {
+            background-color: #555;
+        }
+        .cell.mine {
+            background-color: #ff4c4c;
+            color: white;
+        }
+        .balance, .result, .bet, .info {
+            font-size: 20px;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        .balance {
+            color: #00ff00;
+        }
+        .result {
+            color: #ff4c4c;
+        }
+        .bet, .info {
+            color: #00bfff;
+        }
+        .username-display {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            font-size: 18px;
+            color: #00bfff;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <h2 id="authHeader">Sign Up</h2>
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
+        <button id="authButton">Sign Up</button>
+        <div id="authStatus" class="auth-status"></div>
+    </div>
+
+    <div class="container" id="gameContainer">
+        <h1>Mines Gambling Game</h1>
+        <div class="controls">
+            <label for="betAmount">Bet Amount (USD):</label>
+            <input type="number" id="betAmount" step="0.01" min="0.01" placeholder="Enter amount">
+            <label for="numMines">Number of Mines:</label>
+            <input type="number" id="numMines" step="1" min="1" max="24" value="3" placeholder="Enter number of mines">
+            <button id="startGameButton">Start Game</button>
+            <button id="withdrawButton" disabled>Withdraw</button>
+        </div>
+        <div id="grid" class="grid"></div>
+        <div id="bet" class="bet">Bet: $0.00</div>
+        <div id="balance" class="balance">Balance: $100.00</div>
+        <div id="result" class="result"></div>
+        <div id="info" class="info"></div>
+    </div>
+
+    <div class="username-display" id="usernameDisplay"></div>
+
+    <audio id="mineSound" src="https://www.soundjay.com/button/beep-07.wav"></audio>
+
+    <script>
+        // Authentication script
+        const authHeader = document.getElementById('authHeader');
+        const authButton = document.getElementById('authButton');
+        const authStatus = document.getElementById('authStatus');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const gameContainer = document.getElementById('gameContainer');
+        const usernameDisplay = document.getElementById('usernameDisplay');
+
+        const checkLogin = () => {
+            const storedUsername = localStorage.getItem('username');
+            if (storedUsername) {
+                authHeader.textContent = 'You are logged in';
+                authButton.textContent = 'Logout';
+                authStatus.textContent = `Welcome, ${storedUsername}`;
+                usernameDisplay.textContent = `Logged in as: ${storedUsername}`;
+                usernameDisplay.style.display = 'block'; // Show username display
+                usernameInput.style.display = 'none';
+                passwordInput.style.display = 'none';
+                gameContainer.style.display = 'block'; // Show game container
+            } else {
+                authHeader.textContent = 'Sign Up';
+                authButton.textContent = 'Sign Up';
+                authStatus.textContent = '';
+                usernameDisplay.style.display = 'none'; // Hide username display
+                usernameInput.style.display = 'block';
+                passwordInput.style.display = 'block';
+                gameContainer.style.display = 'none'; // Hide game container
+            }
+        };
+
+        authButton.addEventListener('click', () => {
+            const username = usernameInput.value;
+            const password = passwordInput.value;
+
+            if (authButton.textContent === 'Sign Up') {
+                if (username && password) {
+                    localStorage.setItem('username', username);
+                    localStorage.setItem('password', password);
+                    authHeader.textContent = 'You are logged in';
+                    authButton.textContent = 'Logout';
+                    authStatus.textContent = `Welcome, ${username}`;
+                    usernameDisplay.textContent = `Logged in as: ${username}`;
+                    usernameDisplay.style.display = 'block'; // Show username display
+                    usernameInput.style.display = 'none';
+                    passwordInput.style.display = 'none';
+                    gameContainer.style.display = 'block'; // Show game container
+                } else {
+                    authStatus.textContent = 'Please enter both username and password.';
+                }
+            } else if (authButton.textContent === 'Logout') {
+                localStorage.removeItem('username');
+                localStorage.removeItem('password');
+                authHeader.textContent = 'Sign Up';
+                authButton.textContent = 'Sign Up';
+                authStatus.textContent = '';
+                usernameDisplay.textContent = '';
+                usernameDisplay.style.display = 'none'; // Hide username display
+                usernameInput.style.display = 'block';
+                passwordInput.style.display = 'block';
+                gameContainer.style.display = 'none'; // Hide game container
+                resetGame(); // Reset game state on logout
+            }
+        });
+
+        checkLogin(); // Initialize login state
+
+        // Mines game script
+        let balance = 100;
+        let betAmount = 0;
+        let numMines = 0;
+        let gameEnded = false;
+        let mines;
+        const gridSize = 5;
+        let currentBetMultiplier = 1;
+        let winnings = 0;
+        let gameActive = false;
+
+        const createGrid = () => {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            for (let i = 0; i < gridSize * gridSize; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.addEventListener('click', () => handleCellClick(i));
+                grid.appendChild(cell);
+            }
+        };
+
+        const startGame = () => {
+            if (gameEnded) return;
+
+            const betInput = document.getElementById('betAmount');
+            const minesInput = document.getElementById('numMines');
+            betAmount = parseFloat(betInput.value);
+            numMines = parseInt(minesInput.value);
+            if (isNaN(betAmount) || isNaN(numMines) || betAmount <= 0 || numMines <= 0 || numMines >= gridSize * gridSize) {
+                alert('Please enter a valid bet amount and number of mines.');
+                return;
+            }
+
+            if (betAmount > balance) {
+                alert('Insufficient balance.');
+                return;
+            }
+
+            balance -= betAmount;
+            currentBetMultiplier = 1;
+            winnings = 0;
+            gameEnded = false;
+
+            mines = [];
+            while (mines.length < numMines) {
+                const minePosition = Math.floor(Math.random() * (gridSize * gridSize));
+                if (!mines.includes(minePosition)) {
+                    mines.push(minePosition);
+                }
+            }
+
+            createGrid();
+            updateBalance();
+            updateBet();
+            updateResult('');
+            gameActive = true;
+            document.getElementById('withdrawButton').disabled = true; // Disable withdraw button at the start
+        };
+
+        const handleCellClick = (index) => {
+            if (gameEnded || !gameActive) return;
+
+            const cell = document.querySelectorAll('.cell')[index];
+            if (mines.includes(index)) {
+                cell.classList.add('mine');
+                revealMines();
+                updateResult('Game Over! You hit a mine.');
+                gameEnded = true;
+                gameActive = false;
+                document.getElementById('withdrawButton').disabled = false; // Allow withdrawal after losing
+                document.getElementById('withdrawButton').textContent = 'Withdraw';
+                document.getElementById('mineSound').play();
+                setTimeout(resetGame, 1000); // Clear the board after a delay to show the result
+            } else {
+                cell.classList.add('clicked');
+                currentBetMultiplier *= 1.05;
+                winnings = betAmount * currentBetMultiplier;
+                updateBet();
+                if (document.querySelectorAll('.cell.clicked').length >= gridSize * gridSize - numMines) {
+                    updateResult('You won!');
+                    balance += winnings;
+                    gameEnded = true;
+                    gameActive = false;
+                }
+                document.getElementById('mineSound').play();
+            }
+        };
+
+        const revealMines = () => {
+            mines.forEach(mineIndex => {
+                document.querySelectorAll('.cell')[mineIndex].classList.add('mine');
+            });
+        };
+
+        const updateBalance = () => {
+            document.getElementById('balance').textContent = `Balance: $${balance.toFixed(2)}`;
+        };
+
+        const updateBet = () => {
+            document.getElementById('bet').textContent = `Current Bet Multiplier: ${currentBetMultiplier.toFixed(2)}`;
+        };
+
+        const updateResult = (message) => {
+            document.getElementById('result').textContent = message;
+        };
+
+        const resetGame = () => {
+            gameEnded = false;
+            gameActive = false;
+            const grid = document.getElementById('grid');
+            grid.innerHTML = ''; // Clear the grid
+            updateResult('');
+            updateBet();
+            document.getElementById('withdrawButton').disabled = true; // Disable withdraw button when game resets
+            document.getElementById('withdrawButton').textContent = 'Withdraw'; // Reset button text
+        };
+
+        document.getElementById('startGameButton').addEventListener('click', startGame);
+
+        document.getElementById('withdrawButton').addEventListener('click', () => {
+            if (!gameEnded) {
+                alert('You can only withdraw after the game has ended.');
+                return;
+            }
+            balance += winnings;
+            winnings = 0;
+            updateBalance();
+            updateBet();
+            updateResult('Winnings withdrawn.');
+            resetGame(); // Reset game state after withdrawal
+        });
+    </script>
+<script src="path/to/your/script.js"></script>
+</body>
+</html>
